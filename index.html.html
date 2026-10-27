@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fantasy Historia — World Creator</title>
+<style>
+:root{--bg:#151923;--panel:#202635;--panel2:#293247;--text:#f3f0e8;--muted:#b8c0d0;--gold:#e3b86b;--line:#3a455d;--green:#9fce9a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#28344a 0,#151923 55%);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:22px 18px 16px;text-align:center;border-bottom:1px solid var(--line);background:#111620aa}
+h1{margin:0;color:var(--gold);font-size:clamp(1.8rem,5vw,2.7rem);letter-spacing:.04em}header p{margin:6px 0 0;color:var(--muted)}
+main{max-width:1180px;margin:auto;padding:18px;display:grid;grid-template-columns:minmax(280px,350px) 1fr;gap:18px}
+.panel{background:linear-gradient(160deg,var(--panel),#1a202d);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 12px 28px #0002}
+h2{font-size:1.15rem;margin:0 0 14px;color:var(--gold)}label{display:block;margin:13px 0 5px;font-weight:650}select,input[type=number]{width:100%;padding:10px;background:#111722;color:var(--text);border:1px solid #48536b;border-radius:9px;font:inherit}
+input[type=range]{width:100%;accent-color:var(--gold)}.range-label{display:flex;justify-content:space-between;color:var(--muted);font-size:.9rem}
+button{border:0;border-radius:10px;padding:11px 13px;font:inherit;font-weight:700;cursor:pointer;background:var(--gold);color:#241a0b}
+button.secondary{background:#344058;color:var(--text);border:1px solid #53617c}button.danger{background:#633b43;color:white}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.buttons button:first-child{grid-column:1/-1}
+small,.muted{color:var(--muted)}.status{margin-top:12px;color:var(--green);min-height:1.4em;font-size:.92rem}
+.world-head{display:flex;gap:12px;justify-content:space-between;align-items:start;flex-wrap:wrap}.world-head p{margin:4px 0 12px;color:var(--muted)}
+#mapWrap{background:#111722;border:1px solid var(--line);border-radius:12px;overflow:hidden}canvas{display:block;width:100%;height:auto;aspect-ratio:1.45;cursor:crosshair}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:12px 0}.stat{padding:10px;background:#151b27;border:1px solid var(--line);border-radius:10px}.stat b{display:block;color:var(--gold);font-size:1.2rem}.stat span{font-size:.8rem;color:var(--muted)}
+#details{margin-top:12px;padding:12px;background:#151b27;border-radius:10px;border:1px solid var(--line);min-height:70px}
+#kingdomList{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:12px}.kingdom{border:1px solid var(--line);background:#171e2a;border-radius:10px;padding:10px}.kingdom b{color:var(--gold)}.kingdom small{display:block}
+.file-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.file-row button{flex:1;min-width:120px}
+footer{text-align:center;color:var(--muted);padding:4px 18px 24px;font-size:.86rem}
+@media(max-width:800px){main{grid-template-columns:1fr;padding:12px}.stats{grid-template-columns:repeat(2,1fr)}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<header><h1>Fantasy Historia</h1><p>A free fantasy sandbox · World Creator prototype</p></header>
+<main>
+<section class="panel">
+<h2>1. Create your campaign</h2>
+<label for="role">Starting role</label><select id="role">
+<option value="Adventurer">Adventurer — party, quests and dungeons</option><option value="Lord">Lord — settlement and local rule</option><option value="King">King — diplomacy and conquest</option><option value="Archmage">Archmage — spells and summons</option><option value="Observer">World observer — watch factions evolve</option><option value="Custom">Custom role</option>
+</select>
+<label for="source">World creation</label><select id="source"><option value="procedural">Procedural — generate a new world</option><option value="preset">Preset — use a classic fantasy setup</option><option value="custom">Custom settings — shape the world</option><option value="load">Load a campaign file</option></select>
+<label for="size">World size</label><select id="size"><option value="Small">Small</option><option value="Large" selected>Large</option><option value="Huge">Huge</option><option value="Expanding">Expanding — add regions later</option></select>
+<label for="kingdoms">Starting kingdoms: <span id="kingdomCount">12</span></label><input id="kingdoms" type="range" min="2" max="40" value="12"><div class="range-label"><span>2 kingdoms</span><span>40 kingdoms</span></div>
+<label for="magic">Magic level</label><select id="magic"><option value="Rare">Rare</option><option value="Common" selected>Common</option><option value="Everywhere">Everywhere</option></select>
+<label for="races">Fantasy races</label><select id="races"><option value="Classic mix" selected>Classic mix</option><option value="Humans only">Humans only</option><option value="Custom races">Custom races</option></select>
+<label for="difficulty">Difficulty</label><select id="difficulty"><option value="Relaxed">Relaxed</option><option value="Balanced" selected>Balanced</option><option value="Hard">Hard — defeat has consequences</option></select>
+<div class="buttons"><button id="generate">Generate new world</button><button id="save" class="secondary">Save campaign</button><button id="export" class="secondary">Export file</button><button id="loadBtn" class="secondary">Load file</button><button id="new" class="danger">New campaign</button></div>
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
+<div id="status" class="status" role="status">Ready to create your first world.</div>
+<p><small>Autosaves this campaign in this browser. Export a JSON file as a backup or to move it to another device.</small></p>
+</section>
+<section class="panel">
+<div class="world-head"><div><h2 id="worldTitle">Your world awaits</h2><p id="worldSubtitle">Generate a world to reveal its kingdoms, settlements and wilderness.</p></div><button id="turnBtn" class="secondary">Advance 1 turn</button></div>
+<div id="mapWrap"><canvas id="map" width="1000" height="690" aria-label="Procedurally generated fantasy map"></canvas></div>
+<div class="stats">
+<div class="stat"><b id="statKingdoms">—</b><span>Kingdoms</span></div><div class="stat"><b id="statSettlements">—</b><span>Settlements</span></div><div class="stat"><b id="statTurn">0</b><span>World turn</span></div><div class="stat"><b id="statEvents">0</b><span>Recorded events</span></div>
+</div>
+<div id="details">Click a kingdom marker on the map to inspect it.</div>
+<div id="kingdomList"></div>
+</section>
+</main>
+<footer>Prototype v0.1 · Local-first · No account or paid AI required</footer>
+<script>
+const $=id=>document.getElementById(id);
+const canvas=$('map'),ctx=canvas.getContext('2d');
+let world=null, selectedId=null;
+const colors=['#ba6b5c','#638fbc','#9d79b8','#bd9b4e','#5d9c83','#b46f99','#7d9c55','#c47e49','#6988a3','#a6a05b','#ad7770','#6e9a9a'];
+function rand(seed){let x=seed>>>0;return ()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296}}
+function hashSeed(){return Math.floor(Math.random()*2147483646)+1}
+function saveObject(){return {format:'fantasy-historia-save',version:1,settings:world.settings,world}}
+function setStatus(t){$('status').textContent=t}
+function readSettings(){return {role:$('role').value,source:$('source').value,size:$('size').value,kingdoms:+$('kingdoms').value,magic:$('magic').value,races:$('races').value,difficulty:$('difficulty').value}}
+$('kingdoms').addEventListener('input',()=>$('kingdomCount').textContent=$('kingdoms').value);
+function generateWorld(settings=readSettings(),seed=hashSeed()){
+ const r=rand(seed), n=settings.kingdoms, W=1000,H=690;
+ const namesA=['Eld','Val','Thorn','Ash','Dawn','Raven','Storm','Moon','Iron','Frost','Ember','Silver','Oak','Dragon','Bright','Shadow','Gold','Mist','Wolf','Star'];
+ const namesB=['mere','gard','hold','reach','fall','watch','heim','crest','wyn','mark','vale','spire','moor','haven','keep','ford','march','hollow','rest','dale'];
+ const races=settings.races==='Humans only'?['Human']:settings.races==='Custom races'?['Custom folk','Human','Beastfolk','Ancients']:['Human','Elf','Dwarf','Orc','Halfling','Beastfolk'];
+ const sizeMult=settings.size==='Small'?.68:settings.size==='Huge'?1.35:1;
+ const kingdoms=[],settlements=[],terrain=[];
+ for(let i=0;i<Math.floor(85*sizeMult);i++){terrain.push({x:25+r()*950,y:25+r()*640,type:r()<.52?'forest':r()<.5?'hill':'mountain',s:8+r()*18})}
+ for(let i=0;i<n;i++){
+  let x=75+r()*850,y=70+r()*550;
+  for(let tries=0;tries<50;tries++){if(kingdoms.every(k=>Math.hypot(k.x-x,k.y-y)>72))break;x=75+r()*850;y=70+r()*550}
+  const name=namesA[Math.floor(r()*namesA.length)]+namesB[Math.floor(r()*namesB.length)];
+  const race=races[Math.floor(r()*races.length)];
+  const k={id:'k'+i,name,race,x,y,color:colors[i%colors.length],ruler:['Queen','King','Archduke','Chieftain','High Mage'][Math.floor(r()*5)]+' '+namesA[Math.floor(r()*namesA.length)],population:Math.floor(18000+r()*180000),gold:Math.floor(400+r()*4000),army:Math.floor(150+r()*6500),stability:Math.floor(45+r()*56),relation:[],description:''};
+  kingdoms.push(k);
+  const count=1+Math.floor(r()*4);
+  for(let j=0;j<count;j++)settlements.push({id:'s'+settlements.length,name:namesA[Math.floor(r()*namesA.length)]+namesB[Math.floor(r()*namesB.length)],kind:j===0?'Capital':r()<.35?'Village':'Town',x:x+(r()-.5)*85,y:y+(r()-.5)*65,kingdomId:k.id,population:Math.floor(200+r()*16000)});
+ }
+ const events=[`The Age of ${namesA[Math.floor(r()*namesA.length)]} begins.`,`Merchants report new routes across the ${['northern hills','western forest','eastern pass','southern coast'][Math.floor(r()*4)]}.`];
+ return {seed,settings,turn:1,year:1,kingdoms,settlements,terrain,events,player:{role:settings.role,kingdomId:settings.role==='King'?kingdoms[0]?.id:null,characterName:'The Wanderer',inventory:[],companions:[]},sizeMult};
+}
+function draw(){
+ ctx.clearRect(0,0,1000,690);ctx.fillStyle='#b7a779';ctx.fillRect(0,0,1000,690);
+ // water and coastline-ish land texture
+ ctx.fillStyle='#6b91a2';ctx.fillRect(0,0,1000,690);
+ ctx.fillStyle='#b8b184';ctx.beginPath();ctx.moveTo(0,65);ctx.bezierCurveTo(220,10,230,140,390,100);ctx.bezierCurveTo(550,40,700,120,1000,25);ctx.lineTo(1000,690);ctx.lineTo(0,690);ctx.closePath();ctx.fill();
+ let r=rand(world.seed);
+ for(let i=0;i<250;i++){let x=r()*1000,y=80+r()*610;ctx.fillStyle=i%2?'#b0ae7b':'#c2bb8b';ctx.globalAlpha=.28;ctx.beginPath();ctx.arc(x,y,2+r()*6,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+ // rivers
+ ctx.strokeStyle='#739eae';ctx.lineWidth=5;ctx.lineCap='round';
+ for(let i=0;i<4;i++){ctx.beginPath();let x=100+r()*800,y=70;ctx.moveTo(x,y);for(let j=0;j<8;j++){x+=r()*100-50;y+=65;ctx.quadraticCurveTo(x-25,y-20,x,y)}ctx.stroke()}
+ for(const t of world.terrain){ctx.save();ctx.translate(t.x,t.y);if(t.type==='forest'){ctx.fillStyle='#526f4b';for(let z=0;z<3;z++){ctx.beginPath();ctx.moveTo((z-1)*9,-t.s);ctx.lineTo((z-1)*9-8,t.s/2);ctx.lineTo((z-1)*9+8,t.s/2);ctx.fill()}}else{ctx.fillStyle=t.type==='mountain'?'#77796f':'#9d956f';ctx.beginPath();ctx.moveTo(-t.s,t.s/2);ctx.lineTo(0,-t.s);ctx.lineTo(t.s,t.s/2);ctx.closePath();ctx.fill();ctx.strokeStyle='#d8d2b5';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-t.s);ctx.lineTo(0,t.s/2);ctx.stroke()}ctx.restore()}
+ // soft kingdom influence regions
+ for(const k of world.kingdoms){ctx.globalAlpha=.12;ctx.fillStyle=k.color;ctx.beginPath();ctx.arc(k.x,k.y,75,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+ for(const s of world.settlements){const k=world.kingdoms.find(k=>k.id===s.kingdomId);ctx.fillStyle='#3b3025';ctx.fillRect(s.x-3,s.y-3,6,6);if(s.kind==='Capital'){ctx.fillStyle='#f5df9b';ctx.fillRect(s.x-5,s.y-5,10,10)}}
+ for(const k of world.kingdoms){ctx.fillStyle=k.color;ctx.beginPath();ctx.arc(k.x,k.y,selectedId===k.id?13:9,0,Math.PI*2);ctx.fill();ctx.strokeStyle=selectedId===k.id?'#fff4c7':'#352b25';ctx.lineWidth=selectedId===k.id?4:2;ctx.stroke();ctx.font='bold 14px system-ui';ctx.lineWidth=3;ctx.strokeStyle='#f0e8ca';ctx.strokeText(k.name,k.x+13,k.y-10);ctx.fillStyle='#302c24';ctx.fillText(k.name,k.x+13,k.y-10)}
+ ctx.fillStyle='#302c24';ctx.font='bold 17px Georgia';ctx.fillText('FANTASY HISTORIA',22,32);ctx.font='12px system-ui';ctx.fillText('Click a colored kingdom marker to inspect',22,50);
+}
+function render(){
+ if(!world)return;
+ $('worldTitle').textContent=world.settings.role==='Custom'?'Your Custom Realm':world.player.characterName+' — '+world.settings.role+' Campaign';
+ $('worldSubtitle').textContent=`Seed ${world.seed} · ${world.settings.size} world · ${world.settings.magic} magic · ${world.settings.difficulty} difficulty`;
+ $('statKingdoms').textContent=world.kingdoms.length;$('statSettlements').textContent=world.settlements.length;$('statTurn').textContent=world.turn;$('statEvents').textContent=world.events.length;
+ $('kingdomList').innerHTML=world.kingdoms.map(k=>`<div class="kingdom"><b>${esc(k.name)}</b><small>${esc(k.race)} · ${esc(k.ruler)}</small><small>Population: ${k.population.toLocaleString()}</small><small>Army: ${k.army.toLocaleString()} · Gold: ${k.gold.toLocaleString()}</small></div>`).join('');
+ draw(); if(selectedId)showKingdom(selectedId);else $('details').textContent='Click a colored kingdom marker on the map to inspect it.';
+ try{localStorage.setItem('fantasyHistoriaAutosave',JSON.stringify(saveObject()))}catch(e){}
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function showKingdom(id){const k=world.kingdoms.find(k=>k.id===id);if(!k)return;selectedId=id;$('details').innerHTML=`<strong style="color:${k.color}">${esc(k.name)}</strong> — ${esc(k.race)} realm<br>Ruler: ${esc(k.ruler)} · Population: ${k.population.toLocaleString()} · Army: ${k.army.toLocaleString()} · Treasury: ${k.gold.toLocaleString()} gold<br>Stability: ${k.stability}%`;draw()}
+function start(){world=generateWorld();selectedId=null;render();setStatus('World generated and autosaved. Export a file to keep a portable backup.')}
+$('generate').onclick=()=>{start()};
+$('save').onclick=()=>{if(!world){setStatus('Generate a world first.');return}try{localStorage.setItem('fantasyHistoriaAutosave',JSON.stringify(saveObject()));setStatus('Campaign saved in this browser.')}catch(e){setStatus('Browser storage is full. Use Export file instead.')}};
+$('export').onclick=()=>{if(!world){setStatus('Generate a world first.');return}const blob=new Blob([JSON.stringify(saveObject(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`fantasy-historia-${world.seed}.json`;a.click();URL.revokeObjectURL(a.href);setStatus('Campaign file exported. Keep it somewhere safe.')};
+function loadData(data){const w=data?.world||data;if(!w||!Array.isArray(w.kingdoms)||!Array.isArray(w.settlements)||!w.settings)throw new Error('This does not look like a supported Fantasy Historia save.');world=w;selectedId=null;for(const [key,val] of Object.entries(w.settings)){const el=$(key);if(el)el.value=val} $('kingdomCount').textContent=$('kingdoms').value;render();setStatus('Campaign loaded successfully.')}
+function chooseFile(){ $('fileInput').click() }
+$('loadBtn').onclick=chooseFile;$('source').onchange=()=>{if($('source').value==='load')chooseFile()};
+$('fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{loadData(JSON.parse(await f.text()))}catch(err){setStatus(err.message||'Could not load this file.')}e.target.value=''};
+$('new').onclick=()=>{if(confirm('Start a new campaign? Export your current world first if you want a backup.')){world=null;selectedId=null;ctx.clearRect(0,0,1000,690);ctx.fillStyle='#111722';ctx.fillRect(0,0,1000,690);$('worldTitle').textContent='Your world awaits';$('worldSubtitle').textContent='Generate a world to reveal its kingdoms, settlements and wilderness.';$('kingdomList').innerHTML='';$('details').textContent='Click a kingdom marker on the map to inspect it.';['statKingdoms','statSettlements'].forEach(id=>$(id).textContent='—');$('statTurn').textContent='0';$('statEvents').textContent='0';setStatus('Ready for a new campaign. Existing autosave remains until overwritten.')}};
+$('turnBtn').onclick=()=>{if(!world){setStatus('Generate or load a world first.');return}world.turn++;world.year++;const r=rand(world.seed+world.turn*7919);const k=world.kingdoms[Math.floor(r()*world.kingdoms.length)];const events=[`${k.name} begins expanding its influence.`,`${k.name} holds a seasonal festival; trade increases.`,`${k.name} reports monster activity near its frontier.`,`${k.name}'s council debates new taxes.`,`${k.name} scouts discover an old ruin.`];const event=events[Math.floor(r()*events.length)];world.events.push(`Turn ${world.turn}: ${event}`);if(world.events.length>100)world.events.shift();if(r()<.45)k.gold+=Math.floor(20+r()*180);if(r()<.35)k.stability=Math.max(10,Math.min(100,k.stability+(r()<.5?-3:3)));render();setStatus(event)};
+canvas.addEventListener('click',e=>{if(!world)return;const rect=canvas.getBoundingClientRect(),x=(e.clientX-rect.left)*canvas.width/rect.width,y=(e.clientY-rect.top)*canvas.height/rect.height;let best=null,dist=Infinity;for(const k of world.kingdoms){const d=Math.hypot(k.x-x,k.y-y);if(d<dist){dist=d;best=k}}if(best&&dist<35)showKingdom(best.id)});
+try{const raw=localStorage.getItem('fantasyHistoriaAutosave');if(raw){const d=JSON.parse(raw);if(d?.world){world=d.world;render();setStatus('Previous autosave restored.')}}else{ctx.fillStyle='#111722';ctx.fillRect(0,0,1000,690);ctx.fillStyle='#e3b86b';ctx.font='bold 30px Georgia';ctx.fillText('Your world awaits',40,90);ctx.fillStyle='#b8c0d0';ctx.font='16px system-ui';ctx.fillText('Choose your settings and generate a world.',40,125)}}catch(e){}
+</script>
+</body>
+</html>
